@@ -222,13 +222,13 @@ export default function LandingPage() {
           <figure className="lg:col-span-12 lg:row-start-1 lg:grid lg:grid-cols-12 lg:gap-x-6">
             <img
               src="/landing/atencao-mapa.webp"
-              alt="Mapa de atenção da frase “o gato pulou no jardim”: uma grade 5 por 5 em tons de vermelho a amarelo, com o peso de cada par de tokens escrito na célula."
+              alt="Mapa de atenção da frase “o gato pulou no jardim”: uma grade 5 por 5 que vai do amarelo claro ao vermelho escuro, com o peso de cada par de tokens escrito na célula."
               width={1660}
               height={690}
               className="h-auto max-h-[46vh] w-full object-contain object-left lg:col-span-9"
             />
             <figcaption className="mt-3 text-base text-[var(--muted)] lg:col-span-3 lg:mt-0 lg:self-end">
-              Mapa de atenção, como aparece na plataforma. Cada célula é o peso que um token da frase “o gato pulou no jardim” dá a outro.
+              Mapa de atenção, como aparece na plataforma. Cada célula é o peso que um token da frase “o gato pulou no jardim” dá a outro; cada linha soma 1.
             </figcaption>
           </figure>
 
