@@ -27,8 +27,8 @@ Plataforma interativa para aprender **tudo** sobre Large Language Models: do tre
 
 ```bash
 # Tudo de uma vez (cria venv, instala deps, inicia ambos os servidores)
-git clone https://github.com/Appa019/Vizualizacao_LLM.git
-cd Vizualizacao_LLM
+git clone https://github.com/Appa019/llm-visualizer.git
+cd llm-visualizer
 ./start.sh
 ```
 
@@ -49,8 +49,19 @@ npm run dev
 ```
 
 Acesse:
-- **Frontend**: http://localhost:5173
+- **Frontend**: http://localhost:5173 (a landing page fica em `/home`)
 - **API Docs**: http://localhost:8000/docs
+
+## Deploy da landing
+
+O site publicado na Vercel não tem backend, então ele serve só a landing page. O build com
+`VITE_LANDING_ONLY=1` (variável já configurada no projeto Vercel de produção) monta apenas
+`src/pages/LandingPage.tsx`, sem carregar os módulos 3D:
+
+```bash
+cd frontend
+VITE_LANDING_ONLY=1 npm run build
+```
 
 ## Estrutura
 

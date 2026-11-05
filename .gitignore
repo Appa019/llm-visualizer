@@ -30,3 +30,6 @@ htmlcov/
 
 # Worktrees
 .worktrees/
+
+# Vercel
+.vercel/
