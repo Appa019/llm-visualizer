@@ -57,6 +57,20 @@ class TestSelfAttentionPropriedadesSoftmax:
             err_msg="Cada linha de pesos_atencao deve somar 1 (softmax).",
         )
 
+    def test_linhas_dos_tokens_reais_somam_1(self) -> None:
+        """A submatriz exibida (tokens reais x tokens reais) soma 1 por query.
+
+        Garante que o padding não recebe atenção: o frontend mostra só os tokens reais.
+        """
+        simulador, emb, tokens, num_reais = _criar_simulador_com_embeddings(SEQ_PADRAO)
+        resultado = simulador.compute_attention_step_by_step(emb, tokens, num_reais)
+
+        pesos = np.array(resultado.pesos_atencao)
+        np.testing.assert_allclose(
+            pesos[:num_reais, :num_reais].sum(axis=-1), np.ones(num_reais), atol=1e-6
+        )
+        assert np.all(pesos[:, num_reais:] == 0.0), "Keys de padding devem ter peso 0."
+
     def test_pesos_estao_no_intervalo_zero_um(self) -> None:
         """Todos os pesos de atenção devem estar no intervalo [0, 1]."""
         simulador, emb, tokens, num_reais = _criar_simulador_com_embeddings(SEQ_PADRAO)
@@ -181,6 +195,22 @@ class TestMultiHeadAttentionCabecasDistintas:
             )
 
 
+class TestMultiHeadAttentionMascaraPadding:
+    """O padding não pode receber atenção em nenhuma cabeça."""
+
+    def test_linhas_dos_tokens_reais_somam_1_em_cada_cabeca(self) -> None:
+        mha = MultiHeadAttention(d_model=64, num_heads=4, seq_length=10)
+        _, emb, tokens, num_reais = _criar_simulador_com_embeddings(SEQ_PADRAO)
+
+        resultado = mha.compute_multi_head_attention(emb, tokens, num_reais)
+
+        for cabeca in resultado.cabecas:
+            pesos = np.array(cabeca.pesos_atencao)
+            np.testing.assert_allclose(
+                pesos[:num_reais, :num_reais].sum(axis=-1), np.ones(num_reais), atol=1e-6
+            )
+
+
 class TestMultiHeadAttentionShapeSaida:
     """Verifica a dimensão da saída final do multi-head attention."""
 
@@ -225,8 +255,7 @@ class TestAttentionFlow:
     def test_pesos_sao_probabilidades_validas(self) -> None:
         """Os pesos do fluxo de atenção devem estar no intervalo [0, 1].
 
-        Nota: os pesos são um slice da linha do softmax (apenas tokens reais),
-        portanto a soma é <= 1 (a massa restante pertence aos tokens de padding).
+        Com o padding mascarado, a linha restrita aos tokens reais soma 1.
         """
         simulador, emb, tokens, num_reais = _criar_simulador_com_embeddings(SEQ_PADRAO)
         resultado_att = simulador.compute_attention_step_by_step(emb, tokens, num_reais)
@@ -239,10 +268,7 @@ class TestAttentionFlow:
         pesos = np.array(flow.pesos)
         assert pesos.min() >= 0.0, "Pesos do fluxo não podem ser negativos."
         assert pesos.max() <= 1.0 + 1e-9, "Pesos do fluxo não podem exceder 1."
-        assert pesos.sum() <= 1.0 + 1e-9, (
-            "A soma dos pesos do fluxo não pode exceder 1 "
-            "(são um slice do softmax sobre seq_length inteiro)."
-        )
+        assert abs(pesos.sum() - 1.0) <= 1e-6, "Os pesos do fluxo devem somar 1."
 
     def test_conexoes_significativas_tem_peso_acima_de_cinco_porcento(self) -> None:
         """Todas as conexoes_significativas devem ter peso > 0.05."""

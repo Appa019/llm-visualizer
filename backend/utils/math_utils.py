@@ -30,6 +30,26 @@ def softmax(x: FloatArray, axis: int = -1) -> FloatArray:
     return exp_x / np.sum(exp_x, axis=axis, keepdims=True)
 
 
+def mascarar_padding(scores: FloatArray, num_tokens_reais: int) -> FloatArray:
+    """Retorna uma cópia dos scores com as keys de padding em -inf.
+
+    Sem essa máscara o softmax distribui parte da atenção para posições de
+    padding, e as linhas restritas aos tokens reais deixam de somar 1.
+
+    Args:
+        scores: Matriz de scores (queries, keys).
+        num_tokens_reais: Quantidade de keys reais no início da sequência (>= 1).
+
+    Returns:
+        Matriz com as colunas a partir de num_tokens_reais em -inf.
+    """
+    if num_tokens_reais < 1:
+        raise ValueError("É preciso ao menos um token real para a atenção")
+    mascarado = scores.copy()
+    mascarado[..., num_tokens_reais:] = -np.inf
+    return mascarado
+
+
 def cosine_similarity(a: FloatArray, b: FloatArray) -> float:
     """Calcula a similaridade de cosseno entre dois vetores.
 

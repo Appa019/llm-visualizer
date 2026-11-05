@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from utils.math_utils import softmax
+from utils.math_utils import mascarar_padding, softmax
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +87,7 @@ class MultiHeadAttention:
         W_q: FloatArray,
         W_k: FloatArray,
         W_v: FloatArray,
+        num_tokens_reais: int,
     ) -> tuple[FloatArray, FloatArray]:
         """Computa atenção para uma única cabeça.
 
@@ -95,6 +96,7 @@ class MultiHeadAttention:
             W_q: Matriz de projeção de queries.
             W_k: Matriz de projeção de keys.
             W_v: Matriz de projeção de values.
+            num_tokens_reais: Tokens reais; as keys de padding recebem peso zero.
 
         Returns:
             Tupla (saida, pesos_atencao).
@@ -104,7 +106,7 @@ class MultiHeadAttention:
         V: FloatArray = X @ W_v
 
         scores: FloatArray = Q @ K.T / np.sqrt(self.d_k)
-        pesos = softmax(scores, axis=-1)
+        pesos = softmax(mascarar_padding(scores, num_tokens_reais), axis=-1)
         saida: FloatArray = pesos @ V
         return saida, pesos
 
@@ -136,6 +138,7 @@ class MultiHeadAttention:
                 self.W_q_heads[i],
                 self.W_k_heads[i],
                 self.W_v_heads[i],
+                num_tokens_reais,
             )
             saidas_cabecas.append(saida_cabeca)
             cabecas.append(

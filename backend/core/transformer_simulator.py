@@ -8,7 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from utils.math_utils import softmax
+from utils.math_utils import mascarar_padding, softmax
 
 logger = logging.getLogger(__name__)
 
@@ -230,7 +230,7 @@ class TransformerSimulator:
         fator_escala = float(np.sqrt(self.d_model))
         scores = Q @ K.T
         scores_escalados: FloatArray = scores / fator_escala
-        pesos_atencao = softmax(scores_escalados, axis=-1)
+        pesos_atencao = softmax(mascarar_padding(scores_escalados, num_tokens_reais), axis=-1)
         saida: FloatArray = pesos_atencao @ V
 
         return SelfAttentionResult(
