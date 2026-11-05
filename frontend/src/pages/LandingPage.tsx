@@ -1,798 +1,376 @@
-import { useRef, useState, useEffect } from 'react'
-import {
-  Brain,
-  Hash,
-  Stack,
-  Cpu,
-  Eye,
-  Student,
-  Lightning,
-  Sliders,
-  Flask,
-  GithubLogo,
-  ArrowRight,
-  ArrowUpRight,
-  Terminal,
-  CopySimple,
-  Check,
-  Cube,
-  Function,
-  ChartBar,
-  Atom,
-} from '@phosphor-icons/react'
+import { useEffect, useRef, useState } from 'react'
+import './landing.css'
 
-// ─── Dados dos modulos ─────────────────────────────────────────────────────────
+const GITHUB_URL = 'https://github.com/Appa019/llm-visualizer'
+const CLONE_COMMANDS = [
+  'git clone https://github.com/Appa019/llm-visualizer.git',
+  'cd llm-visualizer',
+  './start.sh',
+].join('\n')
+
+// Real screenshots of the app, cropped from the running modules.
+const telas = [
+  {
+    nome: 'Tokenização',
+    imagem: '/landing/tokenizacao.webp',
+    alt: 'Tokenizador interativo: a frase "O gato dormiu no tapete" dividida em cinco tokens, com o índice de cada um numa tabela.',
+    texto: 'O texto vira tokens e IDs na frente de você. O módulo tem BPE interativo e uma comparação entre tokenizadores.',
+  },
+  {
+    nome: 'Embeddings',
+    imagem: '/landing/embeddings.webp',
+    alt: 'Espaço de embeddings em 3D com palavras como rei, rainha, homem, mulher, feliz e triste posicionadas como pontos.',
+    texto: 'Palavras como pontos num espaço 3D que dá para girar. Também mostra positional encoding e distância cosseno.',
+  },
+  {
+    nome: 'Atenção',
+    imagem: '/landing/atencao-3d.webp',
+    alt: 'Pesos de atenção em 3D: os tokens da frase "o gato pulou no jardim" em círculo, ligados por arcos.',
+    texto: 'Self-attention passo a passo, multi-head e os pesos em 3D: cada arco liga dois tokens da frase.',
+  },
+  {
+    nome: 'Treinamento',
+    imagem: '/landing/treinamento.webp',
+    alt: 'Superfície de loss em 3D com um slider de learning rate acima.',
+    texto: 'Superfície de loss em 3D com gradient descent descendo até o mínimo. O learning rate fica num slider.',
+  },
+]
 
 const modulos = [
-  {
-    numero: '01',
-    titulo: 'O que sao LLMs?',
-    descricao: 'O que sao Grandes Modelos de Linguagem e por que transformaram a IA.',
-    icone: Brain,
-    cor: 'blue',
-  },
-  {
-    numero: '02',
-    titulo: 'Tokenizacao',
-    descricao: 'Como texto bruto vira sequencias de tokens - BPE, WordPiece e comparativos.',
-    icone: Hash,
-    cor: 'emerald',
-  },
-  {
-    numero: '03',
-    titulo: 'Embeddings',
-    descricao: 'Vetores de alta dimensao que codificam significado semantico em espaco geometrico.',
-    icone: Stack,
-    cor: 'violet',
-  },
-  {
-    numero: '04',
-    titulo: 'Arquitetura Transformer',
-    descricao: 'Encoder-decoder, camadas de atencao empilhadas, feed-forward e residual connections.',
-    icone: Cpu,
-    cor: 'orange',
-  },
-  {
-    numero: '05',
-    titulo: 'Mecanismo de Atencao',
-    descricao: 'Self-attention, queries, keys e values com visualizacao de heatmaps interativos.',
-    icone: Eye,
-    cor: 'red',
-  },
-  {
-    numero: '06',
-    titulo: 'Treinamento',
-    descricao: 'Pre-treino em escala, backpropagation, funcao de perda e descida de gradiente.',
-    icone: Student,
-    cor: 'yellow',
-  },
-  {
-    numero: '07',
-    titulo: 'Inferencia',
-    descricao: 'Geracao token a token, temperatura, top-k e estrategias de decodificacao.',
-    icone: Lightning,
-    cor: 'cyan',
-  },
-  {
-    numero: '08',
-    titulo: 'Fine-tuning',
-    descricao: 'Especializacao de modelos base com LoRA, PEFT e datasets reduzidos.',
-    icone: Sliders,
-    cor: 'pink',
-  },
-  {
-    numero: '09',
-    titulo: 'Laboratorio',
-    descricao: 'Experimentos interativos: tokenize texto, explore embeddings, observe atencao ao vivo.',
-    icone: Flask,
-    cor: 'teal',
-  },
+  ['O que são LLMs', 'História, a linha do tempo RNN → LSTM → Transformer e os fundamentos.'],
+  ['Tokenização', 'BPE interativo e comparação de tokenizadores.'],
+  ['Embeddings', 'Espaço vetorial 3D, positional encoding e distância cosseno.'],
+  ['Arquitetura', 'O transformer completo: FFN, LayerNorm e conexões residuais.'],
+  ['Atenção', 'Self-attention passo a passo, multi-head e heatmaps 3D.'],
+  ['Treinamento', 'Superfície de loss 3D, gradient descent e um mini-modelo que treina na hora.'],
+  ['Inferência', 'Temperatura, top-k, top-p, beam search e geração ao vivo.'],
+  ['Fine-tuning', 'RLHF, LoRA e transfer learning.'],
+  ['Laboratório', 'O pipeline completo, interativo, e um comparador de modelos.'],
 ]
 
-// Estilos por cor - seguindo o padrao de Home.tsx
-const coresBadge: Record<string, string> = {
-  blue: 'bg-blue-50 text-blue-700 border-blue-200',
-  emerald: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  violet: 'bg-violet-50 text-violet-700 border-violet-200',
-  orange: 'bg-orange-50 text-orange-700 border-orange-200',
-  red: 'bg-red-50 text-red-700 border-red-200',
-  yellow: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  cyan: 'bg-cyan-50 text-cyan-700 border-cyan-200',
-  pink: 'bg-pink-50 text-pink-700 border-pink-200',
-  teal: 'bg-teal-50 text-teal-700 border-teal-200',
-}
-
-const coresIcone: Record<string, string> = {
-  blue: 'text-blue-600',
-  emerald: 'text-emerald-600',
-  violet: 'text-violet-600',
-  orange: 'text-orange-600',
-  red: 'text-red-600',
-  yellow: 'text-yellow-600',
-  cyan: 'text-cyan-600',
-  pink: 'text-pink-600',
-  teal: 'text-teal-600',
-}
-
-// ─── Dados das screenshots ─────────────────────────────────────────────────────
-
-const screenshots = [
-  {
-    arquivo: '/screenshots/home.png',
-    titulo: 'Pagina inicial',
-    descricao: '9 modulos de aprendizado sequencial',
-    rotacao: '-1.5deg',
-  },
-  {
-    arquivo: '/screenshots/what-are-llms.png',
-    titulo: 'O que sao LLMs',
-    descricao: 'Teoria com formulas KaTeX e exemplos',
-    rotacao: '0.5deg',
-  },
-  {
-    arquivo: '/screenshots/tokenization.png',
-    titulo: 'Tokenizacao',
-    descricao: 'BPE interativo com visualizacao de merges',
-    rotacao: '-0.8deg',
-  },
-  {
-    arquivo: '/screenshots/architecture.png',
-    titulo: 'Arquitetura Transformer',
-    descricao: 'Visualizacao 3D do fluxo de tokens',
-    rotacao: '1.2deg',
-  },
-  {
-    arquivo: '/screenshots/inference.png',
-    titulo: 'Inferencia',
-    descricao: 'Pipeline de geracao token a token',
-    rotacao: '-0.6deg',
-  },
-  {
-    arquivo: '/screenshots/fine-tuning.png',
-    titulo: 'Fine-tuning e LoRA',
-    descricao: 'Visualizacao de adapters e PEFT',
-    rotacao: '1.0deg',
-  },
+const roteiro = [
+  ['Legenda', 'O que o gráfico mostra, em linguagem simples.'],
+  ['Fórmula', 'Renderizada com KaTeX, com variáveis clicáveis e cores fixas: Q em vermelho, K em verde, V em azul.'],
+  ['Por que importa', 'A ligação entre o conceito e o uso real dos modelos.'],
+  ['Interação', 'Girar em 3D, passar o mouse para ver detalhes e mudar parâmetros em sliders.'],
 ]
 
-// ─── Stack tecnologico ─────────────────────────────────────────────────────────
-
-const tecnologias = [
-  { nome: 'React 18', categoria: 'Frontend', icone: Atom },
-  { nome: 'TypeScript', categoria: 'Frontend', icone: Function },
-  { nome: 'Three.js', categoria: 'Visualizacao', icone: Cube },
-  { nome: 'Plotly.js', categoria: 'Visualizacao', icone: ChartBar },
-  { nome: 'KaTeX', categoria: 'Math', icone: Function },
-  { nome: 'FastAPI', categoria: 'Backend', icone: Lightning },
-  { nome: 'Vite', categoria: 'Build', icone: Lightning },
-  { nome: 'Tailwind CSS', categoria: 'Estilos', icone: Stack },
+// Fixed logits used by the backend temperature demo (TextGenerator.demonstrar_temperatura,
+// rng seed 0, 126-word vocabulary), sorted high to low. Only the first 10 are shown.
+const TOKENS = ['deles', 'depois', 'qual', 'sem', 'essa', 'lhes', 'meu', 'minhas', 'pela', 'só']
+const LOGITS = [
+  2.002, 1.96, 1.822, 1.802, 1.739, 1.689, 1.583, 1.574, 1.514, 1.493, 1.458, 1.421, 1.366, 1.346, 1.32, 1.315,
+  1.304, 1.295, 1.165, 1.043, 1.031, 1.004, 0.99, 0.947, 0.935, 0.903, 0.873, 0.844, 0.844, 0.788, 0.784, 0.781,
+  0.726, 0.696, 0.694, 0.684, 0.656, 0.64, 0.633, 0.63, 0.621, 0.581, 0.541, 0.503, 0.43, 0.412, 0.395, 0.386,
+  0.362, 0.357, 0.355, 0.352, 0.329, 0.264, 0.25, 0.22, 0.215, 0.202, 0.189, 0.161, 0.126, 0.109, 0.105, 0.094,
+  0.076, 0.052, 0.049, 0.041, -0.004, -0.076, -0.129, -0.13, -0.132, -0.135, -0.159, -0.164, -0.209, -0.219,
+  -0.259, -0.287, -0.314, -0.316, -0.378, -0.433, -0.436, -0.458, -0.496, -0.536, -0.544, -0.582, -0.586, -0.618,
+  -0.623, -0.633, -0.654, -0.662, -0.662, -0.665, -0.704, -0.713, -0.732, -0.735, -0.743, -0.755, -0.758, -0.77,
+  -0.922, -1.01, -1.074, -1.091, -1.17, -1.184, -1.208, -1.246, -1.259, -1.265, -1.278, -1.28, -1.288, -1.32,
+  -1.341, -1.402, -1.427, -2.204, -2.25, -2.325,
 ]
 
-// ─── Componente: Botao de copiar ───────────────────────────────────────────────
-
-function BotaoCopiar({ texto }: { texto: string }) {
-  const [copiado, setCopiado] = useState(false)
-
-  function copiar() {
-    navigator.clipboard.writeText(texto).then(() => {
-      setCopiado(true)
-      setTimeout(() => setCopiado(false), 2000)
-    })
-  }
-
-  return (
-    <button
-      onClick={copiar}
-      aria-label="Copiar comando"
-      className="
-        flex items-center gap-1.5 text-xs font-mono text-gray-400
-        hover:text-gray-200 transition-colors duration-150
-        px-2 py-1 rounded-sm hover:bg-white/10
-      "
-    >
-      {copiado ? (
-        <>
-          <Check size={13} weight="bold" className="text-emerald-400" />
-          <span className="text-emerald-400">Copiado</span>
-        </>
-      ) : (
-        <>
-          <CopySimple size={13} weight="duotone" />
-          Copiar
-        </>
-      )}
-    </button>
-  )
+// Same softmax(logits / T) as the backend; LOGITS[0] is the max, subtracted for stability.
+function softmax(logits: number[], temperatura: number): number[] {
+  const exps = logits.map((l) => Math.exp((l - logits[0]) / temperatura))
+  const soma = exps.reduce((a, b) => a + b, 0)
+  return exps.map((e) => e / soma)
 }
 
-// ─── Componente: Bloco de codigo ───────────────────────────────────────────────
+const pct = new Intl.NumberFormat('pt-BR', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const dec = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1 })
 
-function BlocoComando({ comentario, comando }: { comentario?: string; comando: string }) {
-  return (
-    <div className="group relative">
-      {comentario && (
-        <div className="font-mono text-xs text-gray-500 mb-1"># {comentario}</div>
-      )}
-      <div className="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-sm px-4 py-2.5">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="text-gray-500 font-mono text-xs shrink-0">$</span>
-          <code className="font-mono text-sm text-gray-100 truncate">{comando}</code>
-        </div>
-        <BotaoCopiar texto={comando} />
-      </div>
-    </div>
-  )
-}
-
-// ─── Componente: Secao de instalacao ──────────────────────────────────────────
-
-function SecaoInstalacao() {
-  const passos = [
-    {
-      numero: '1',
-      titulo: 'Clone o repositorio',
-      comando: 'git clone https://github.com/Appa019/Vizualizacao_LLM.git',
-      comentario: undefined,
-    },
-    {
-      numero: '2',
-      titulo: 'Entre na pasta do projeto',
-      comando: 'cd Vizualizacao_LLM',
-      comentario: undefined,
-    },
-    {
-      numero: '3',
-      titulo: 'Inicie backend e frontend',
-      comando: './start.sh',
-      comentario: 'Cria venv, instala deps e sobe ambos os servidores',
-    },
-  ]
-
-  return (
-    <div className="space-y-5">
-      {passos.map((passo) => (
-        <div key={passo.numero} className="flex gap-5">
-          <div className="flex flex-col items-center gap-1 shrink-0">
-            <div className="w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-mono font-bold flex items-center justify-center">
-              {passo.numero}
-            </div>
-            {passo.numero !== '3' && (
-              <div className="w-px flex-1 bg-gray-200 min-h-[1.5rem]" />
-            )}
-          </div>
-          <div className="flex-1 pb-5">
-            <div className="text-sm font-medium text-gray-900 mb-2">{passo.titulo}</div>
-            <BlocoComando comentario={passo.comentario} comando={passo.comando} />
-          </div>
-        </div>
-      ))}
-
-      <div className="mt-2 ml-11 text-xs text-gray-500 leading-relaxed">
-        Apos iniciar, acesse{' '}
-        <code className="code-inline">localhost:5173</code> no navegador.
-        Python 3.11+ e Node 18+ sao requeridos.
-      </div>
-    </div>
-  )
-}
-
-// ─── Componente: Carrossel de screenshots ─────────────────────────────────────
-
-function CarrosselScreenshots() {
-  const trilhaRef = useRef<HTMLDivElement>(null)
-  const [indiceAtivo, setIndiceAtivo] = useState(0)
-
-  // Rolagem ao clicar nos indicadores
-  function irPara(indice: number) {
-    setIndiceAtivo(indice)
-    const trilha = trilhaRef.current
-    if (!trilha) return
-    const filho = trilha.children[indice] as HTMLElement
-    if (filho) {
-      const offsetEsquerda = filho.offsetLeft - trilha.offsetLeft
-      trilha.scrollTo({ left: offsetEsquerda - 24, behavior: 'smooth' })
-    }
-  }
-
-  // Atualiza indice ativo com IntersectionObserver
-  useEffect(() => {
-    const trilha = trilhaRef.current
-    if (!trilha) return
-
-    const observador = new IntersectionObserver(
-      (entradas) => {
-        for (const entrada of entradas) {
-          if (entrada.isIntersecting && entrada.intersectionRatio > 0.5) {
-            const indice = Array.from(trilha.children).indexOf(entrada.target as HTMLElement)
-            if (indice >= 0) setIndiceAtivo(indice)
-          }
-        }
-      },
-      { root: trilha, threshold: 0.5 }
-    )
-
-    Array.from(trilha.children).forEach((filho) => observador.observe(filho))
-    return () => observador.disconnect()
-  }, [])
+function Temperatura() {
+  const [t, setT] = useState(1)
+  const probs = softmax(LOGITS, t).slice(0, TOKENS.length)
+  // Bars are scaled to the most likely token so the shape stays readable at high T; the % is absolute.
+  const maior = probs[0]
 
   return (
     <div>
-      {/* Trilha horizontal com overflow */}
-      <div
-        ref={trilhaRef}
-        className="flex gap-5 overflow-x-auto pb-6 -mx-6 px-6"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {screenshots.map((sc, i) => (
-          <div
-            key={sc.arquivo}
-            className="shrink-0 w-[320px] sm:w-[400px] lg:w-[480px] cursor-pointer"
-            onClick={() => irPara(i)}
-            style={{ transform: `rotate(${sc.rotacao})`, transformOrigin: 'center bottom' }}
-          >
-            <div
-              className="
-                glass-card overflow-hidden
-                transition-all duration-300
-                hover:shadow-md hover:-translate-y-0.5
-              "
-            >
-              {/* Screenshot */}
-              <div className="bg-gray-100 border-b border-gray-200">
-                {/* Barra de titulo do navegador (decorativa) */}
-                <div className="flex items-center gap-1.5 px-3 py-2 border-b border-gray-200 bg-gray-50">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-300" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-300" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-300" />
-                  <div className="flex-1 mx-3 bg-white border border-gray-200 rounded-sm px-2 py-0.5">
-                    <span className="font-mono text-[10px] text-gray-400">localhost:5173</span>
-                  </div>
-                </div>
-                <img
-                  src={sc.arquivo}
-                  alt={`Screenshot da pagina: ${sc.titulo}`}
-                  className="w-full h-[200px] sm:h-[240px] object-cover object-top"
-                  loading="lazy"
-                />
-              </div>
-              {/* Legenda */}
-              <div className="px-4 py-3">
-                <div className="text-sm font-medium text-gray-900">{sc.titulo}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{sc.descricao}</div>
-              </div>
-            </div>
-          </div>
+      <label htmlFor="controle-temperatura" className="flex items-baseline justify-between text-lg font-semibold">
+        Temperatura
+        <output htmlFor="controle-temperatura" className="text-[1.75rem] font-extrabold tabular-nums">
+          {dec.format(t)}
+        </output>
+      </label>
+      <input
+        id="controle-temperatura"
+        type="range"
+        min={0.1}
+        max={2}
+        step={0.1}
+        value={t}
+        onChange={(e) => setT(Number(e.target.value))}
+        className="mt-3 h-11 w-full cursor-pointer"
+      />
+      <ol className="mt-6 space-y-2" aria-label="Probabilidade de cada token">
+        {TOKENS.map((token, i) => (
+          <li key={token} className="grid grid-cols-[5.5rem_1fr_4rem] items-center gap-3">
+            <span className="font-semibold">{token}</span>
+            <span className="h-5 w-full" aria-hidden="true">
+              <span className="bar block h-full bg-[var(--ink)]" style={{ transform: `scaleX(${probs[i] / maior})` }} />
+            </span>
+            <span className="text-right tabular-nums">{pct.format(probs[i])}</span>
+          </li>
         ))}
-      </div>
-
-      {/* Indicadores */}
-      <div className="flex items-center justify-center gap-2 mt-2">
-        {screenshots.map((_, i) => (
-          <button
-            key={i}
-            onClick={() => irPara(i)}
-            aria-label={`Ver screenshot ${i + 1}`}
-            className={`
-              h-1.5 rounded-full transition-all duration-200
-              ${i === indiceAtivo ? 'w-6 bg-blue-600' : 'w-1.5 bg-gray-300 hover:bg-gray-400'}
-            `}
-          />
-        ))}
-      </div>
+      </ol>
     </div>
   )
 }
 
-// ─── Componente principal: LandingPage ────────────────────────────────────────
-
-export default function LandingPage() {
-  const GITHUB_URL = 'https://github.com/Appa019/Vizualizacao_LLM'
+function Telas() {
+  const [ativa, setAtiva] = useState(0)
+  const tela = telas[ativa]
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-
-      {/* ── Barra de navegacao ──────────────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-sm border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          {/* Logo / nome */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 bg-blue-600 rounded-sm flex items-center justify-center">
-              <Brain size={15} weight="fill" className="text-white" />
-            </div>
-            <span className="font-semibold text-gray-900 text-sm tracking-tight">
-              LLM Explorer
-            </span>
-            <span className="hidden sm:block font-mono text-[10px] text-gray-400 border border-gray-200 px-1.5 py-0.5 rounded-sm">
-              pt-BR
-            </span>
-          </div>
-
-          {/* Links de navegacao */}
-          <nav className="hidden md:flex items-center gap-6">
-            <a
-              href="#modulos"
-              className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              Modulos
-            </a>
-            <a
-              href="#screenshots"
-              className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              Screenshots
-            </a>
-            <a
-              href="#stack"
-              className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              Stack
-            </a>
-            <a
-              href="#instalacao"
-              className="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              Instalacao
-            </a>
-          </nav>
-
-          {/* CTA GitHub */}
-          <a
-            href={GITHUB_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 btn-outline text-sm py-1.5 px-3"
+    <>
+      <div className="lg:col-span-5" data-reveal>
+        <h2 id="telas-titulo" className="display text-[clamp(2.25rem,4vw,3.75rem)]">
+          As telas da plataforma
+        </h2>
+      </div>
+      <div className="mt-6 flex flex-wrap gap-x-6 gap-y-1 lg:col-span-7 lg:mt-0 lg:self-end" data-reveal style={{ '--d': '80ms' } as React.CSSProperties}>
+        {telas.map((item, i) => (
+          <button
+            key={item.nome}
+            type="button"
+            aria-pressed={i === ativa}
+            aria-controls="tela-atual"
+            onClick={() => setAtiva(i)}
+            className={`min-h-11 text-xl font-bold transition-colors lg:text-[1.75rem] ${
+              i === ativa ? 'text-[var(--ink)] underline decoration-2 underline-offset-8' : 'text-[var(--muted)] hover:text-[var(--ink)]'
+            }`}
           >
-            <GithubLogo size={15} weight="fill" />
-            <span className="hidden sm:inline">GitHub</span>
-          </a>
-        </div>
+            {item.nome}
+          </button>
+        ))}
+      </div>
+      <figure id="tela-atual" className="mt-10 lg:col-span-12 lg:mt-14 lg:grid lg:grid-cols-12 lg:gap-x-6" aria-live="polite" data-reveal style={{ '--d': '160ms' } as React.CSSProperties}>
+        <img
+          key={tela.imagem}
+          src={tela.imagem}
+          alt={tela.alt}
+          width={1520}
+          height={950}
+          className="swap h-[280px] w-full object-cover object-left-top sm:h-auto lg:col-span-9"
+        />
+        <figcaption className="mt-4 lg:col-span-3 lg:mt-0 lg:self-end">
+          <span className="block text-[1.75rem] font-bold">{tela.nome}</span>
+          <span className="mt-2 block">{tela.texto}</span>
+        </figcaption>
+      </figure>
+    </>
+  )
+}
+
+export default function LandingPage() {
+  const raiz = useRef<HTMLDivElement>(null)
+  const [copiado, setCopiado] = useState(false)
+
+  // Arm the entrance animation only when motion is allowed; content stays visible otherwise.
+  useEffect(() => {
+    const el = raiz.current
+    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    el.classList.add('reveal-on')
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        for (const entrada of entradas) {
+          if (entrada.isIntersecting) {
+            entrada.target.classList.add('is-in')
+            observador.unobserve(entrada.target)
+          }
+        }
+      },
+      { rootMargin: '0px 0px -10% 0px' },
+    )
+    el.querySelectorAll('[data-reveal]').forEach((n) => observador.observe(n))
+    return () => observador.disconnect()
+  }, [])
+
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(CLONE_COMMANDS)
+      setCopiado(true)
+      setTimeout(() => setCopiado(false), 2000)
+    } catch {
+      // Clipboard can be blocked (insecure context, permissions); the commands stay selectable.
+    }
+  }
+
+  const container = 'mx-auto w-full max-w-[1440px] px-5 sm:px-8 lg:px-12'
+  const grade = `${container} lg:grid lg:grid-cols-12 lg:gap-x-6`
+
+  return (
+    <div ref={raiz} className="landing min-h-svh">
+      <header className={`${grade} flex items-center justify-between py-6`}>
+        <a href="#topo" className="text-lg font-extrabold lg:col-span-5">
+          LLM Explorer
+        </a>
+        <nav aria-label="Seções" className="hidden gap-8 md:flex lg:col-span-4">
+          <a href="#telas" className="hover:underline">Telas</a>
+          <a href="#modulos" className="hover:underline">Módulos</a>
+          <a href="#rodar" className="hover:underline">Rodar</a>
+        </nav>
+        <a href={GITHUB_URL} className="link text-right lg:col-span-3" target="_blank" rel="noopener noreferrer">
+          Código no GitHub
+        </a>
       </header>
 
-      <main>
+      <main id="topo">
+        <section className={`${grade} pt-4 lg:pt-6`} aria-labelledby="titulo">
+          <figure className="lg:col-span-12 lg:row-start-1 lg:grid lg:grid-cols-12 lg:gap-x-6">
+            <img
+              src="/landing/atencao-mapa.webp"
+              alt="Mapa de atenção da frase “o gato pulou no jardim”: uma grade 5 por 5 em tons de vermelho a amarelo, com o peso de cada par de tokens escrito na célula."
+              width={1660}
+              height={690}
+              className="h-auto max-h-[46vh] w-full object-contain object-left lg:col-span-9"
+            />
+            <figcaption className="mt-3 text-base text-[var(--muted)] lg:col-span-3 lg:mt-0 lg:self-end">
+              Mapa de atenção, como aparece na plataforma. Cada célula é o peso que um token da frase “o gato pulou no jardim” dá a outro.
+            </figcaption>
+          </figure>
 
-        {/* ── Hero ───────────────────────────────────────────────────────────── */}
-        <section className="max-w-6xl mx-auto px-6 pt-20 pb-24">
-          <div className="max-w-3xl">
-            {/* Badge de contexto */}
-            <div className="inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-gray-500 bg-gray-100 border border-gray-200 px-2.5 py-1 rounded-sm mb-7">
-              <Brain size={12} weight="duotone" />
-              Plataforma Educacional - Open Source
+          <h1
+            id="titulo"
+            className="display mt-10 text-[clamp(2.25rem,10.6vw,5.25rem)] lg:col-span-7 lg:col-start-6 lg:row-start-2 lg:mt-16 lg:text-[clamp(2.75rem,5.6vw,5.25rem)]"
+          >
+            <span className="mask-line"><span>Transformers</span></span>
+            <span className="mask-line"><span>vistos por dentro</span></span>
+          </h1>
+          <p className="mt-6 max-w-[34ch] text-xl lg:col-span-5 lg:col-start-1 lg:row-start-2 lg:mt-0 lg:self-end">
+            Uma plataforma aberta, em português, para estudar LLMs do texto à geração, com visualizações 3D, fórmulas e um simulador que roda sem GPU.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-4 lg:col-span-7 lg:col-start-6 lg:row-start-3">
+            <a href={GITHUB_URL} className="btn" target="_blank" rel="noopener noreferrer">
+              Ver o código no GitHub
+            </a>
+            <a href="#rodar" className="link">
+              Como rodar na sua máquina
+            </a>
+          </div>
+        </section>
+
+        <section id="telas" className={`${grade} mt-32 lg:mt-48`} aria-labelledby="telas-titulo">
+          <Telas />
+        </section>
+
+        <section id="modulos" className={`${grade} mt-32 lg:mt-48`} aria-labelledby="modulos-titulo">
+          <div className="lg:col-span-5">
+            <div className="lg:sticky lg:top-10" data-reveal>
+              <h2 id="modulos-titulo" className="display text-[clamp(2.25rem,4vw,3.75rem)]">
+                Nove módulos, do texto à geração
+              </h2>
+              <figure className="mt-10 hidden lg:block">
+                <img
+                  src="/landing/arquitetura.webp"
+                  alt="Diagrama de um bloco decoder do módulo de arquitetura: Layer Norm, Multi-Head Attention, Add & Norm, Feed Forward e Add & Norm empilhados, com as conexões residuais ao lado."
+                  width={500}
+                  height={994}
+                  loading="lazy"
+                  className="h-auto w-[250px]"
+                />
+                <figcaption className="mt-3 max-w-[30ch] text-base text-[var(--muted)]">
+                  Um bloco decoder, como aparece no módulo de arquitetura.
+                </figcaption>
+              </figure>
             </div>
+          </div>
+          <ol className="mt-10 space-y-10 lg:col-span-7 lg:mt-0">
+            {modulos.map(([titulo, texto], i) => (
+              <li key={titulo} data-reveal style={{ '--d': `${(i % 3) * 70}ms` } as React.CSSProperties}>
+                <h3 className="text-[1.75rem] font-bold leading-tight">{titulo}</h3>
+                <p className="mt-2 max-w-[52ch]">{texto}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
 
-            {/* Titulo principal */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 leading-[1.1] tracking-tight mb-6">
-              Aprenda como
-              <br />
-              <span className="text-blue-600">LLMs funcionam</span>
-              <br />
-              de dentro para fora.
-            </h1>
-
-            <p className="text-lg text-gray-600 leading-relaxed max-w-2xl mb-10">
-              Uma plataforma interativa em portugues para estudar Transformers e Grandes Modelos
-              de Linguagem. Visualizacoes 3D, formulas matematicas renderizadas, e experimentos
-              ao vivo - tudo sem precisar de GPU.
+        <section id="temperatura" className={`${grade} mt-32 lg:mt-48`} aria-labelledby="temperatura-titulo">
+          <div className="lg:col-span-5 lg:col-start-8 lg:row-start-1" data-reveal>
+            <h2 id="temperatura-titulo" className="display text-[clamp(2.25rem,4vw,3.75rem)]">
+              Mexa na temperatura
+            </h2>
+            <p className="mt-6 max-w-[42ch]">
+              Estes são os logits fixos que o simulador usa no módulo de inferência. A probabilidade de cada token é
+              softmax(logits / T): com T baixo ela se concentra nos primeiros, com T alto se espalha pelo vocabulário de 126 palavras.
             </p>
+          </div>
+          <div className="mt-10 lg:col-span-6 lg:col-start-1 lg:row-start-1 lg:mt-0" data-reveal style={{ '--d': '100ms' } as React.CSSProperties}>
+            <Temperatura />
+          </div>
+        </section>
 
-            {/* CTAs */}
-            <div className="flex flex-wrap items-center gap-3">
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 btn-primary text-sm py-2.5 px-5"
-              >
-                <GithubLogo size={16} weight="fill" />
-                Ver no GitHub
-                <ArrowUpRight size={14} weight="bold" className="ml-0.5" />
-              </a>
-              <a
-                href="#instalacao"
-                className="flex items-center gap-2 btn-outline text-sm py-2.5 px-5"
-              >
-                <Terminal size={16} weight="duotone" />
-                Rodar localmente
-              </a>
-            </div>
-
-            {/* Estatisticas rapidas */}
-            <div className="flex flex-wrap items-center gap-6 mt-12 pt-8 border-t border-gray-200">
-              {[
-                { valor: '9', rotulo: 'modulos de conteudo' },
-                { valor: '3D', rotulo: 'visualizacoes interativas' },
-                { valor: 'pt-BR', rotulo: 'conteudo em portugues' },
-                { valor: 'MIT', rotulo: 'licenca open source' },
-              ].map((stat) => (
-                <div key={stat.rotulo}>
-                  <div className="font-mono text-xl font-bold text-gray-900">{stat.valor}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">{stat.rotulo}</div>
+        <section id="metodo" className={`${grade} mt-32 lg:mt-48`} aria-labelledby="metodo-titulo">
+          <div className="lg:col-span-5" data-reveal>
+            <h2 id="metodo-titulo" className="display text-[clamp(2.25rem,4vw,3.75rem)]">
+              Veja, entenda, aplique
+            </h2>
+            <figure className="mt-10 lg:mt-14">
+              <img
+                src="/landing/atencao-formula.webp"
+                alt="Fórmula do peso de atenção: w_ij = softmax(q_i · k_j / raiz de d_k), com q em vermelho e k em verde."
+                width={460}
+                height={140}
+                loading="lazy"
+                className="h-auto w-full max-w-[460px]"
+              />
+              <figcaption className="mt-3 max-w-[36ch] text-base text-[var(--muted)]">
+                A fórmula do mapa de atenção, como aparece no módulo, com q e k nas cores fixas.
+              </figcaption>
+            </figure>
+          </div>
+          <div className="mt-6 lg:col-span-7 lg:mt-0" data-reveal style={{ '--d': '80ms' } as React.CSSProperties}>
+            <p className="max-w-[46ch] text-xl">Toda visualização da plataforma vem com as mesmas quatro camadas.</p>
+            <dl className="mt-10 grid gap-x-10 gap-y-8 sm:grid-cols-2">
+              {roteiro.map(([termo, definicao]) => (
+                <div key={termo}>
+                  <dt className="text-xl font-bold">{termo}</dt>
+                  <dd className="mt-1">{definicao}</dd>
                 </div>
               ))}
-            </div>
+            </dl>
           </div>
         </section>
 
-        {/* ── Modulos ────────────────────────────────────────────────────────── */}
-        <section
-          id="modulos"
-          className="bg-gray-50 border-y border-gray-200 py-20"
-        >
-          <div className="max-w-6xl mx-auto px-6">
-            {/* Cabecalho da secao */}
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
-              <div>
-                <div className="font-mono text-[11px] uppercase tracking-widest text-gray-400 mb-3">
-                  Conteudo
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight tracking-tight">
-                  9 modulos progressivos
-                </h2>
-                <p className="text-gray-500 text-sm mt-2 max-w-md leading-relaxed">
-                  Do conceito basico ate experimentos avancados de fine-tuning.
-                  Cada modulo inclui teoria, visualizacao e pratica.
-                </p>
-              </div>
-              <a
-                href={GITHUB_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors shrink-0"
-              >
-                Ver codigo-fonte
-                <ArrowRight size={14} weight="bold" />
-              </a>
-            </div>
-
-            {/* Grid de modulos */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {modulos.map((modulo) => {
-                const Icone = modulo.icone
-                return (
-                  <div
-                    key={modulo.numero}
-                    className="
-                      group flex flex-col glass-card p-5 gap-4
-                      hover:border-gray-300 hover:shadow-sm hover:bg-white
-                      transition-all duration-200
-                    "
-                  >
-                    {/* Topo */}
-                    <div className="flex items-start justify-between">
-                      <div
-                        className={`
-                          flex items-center justify-center w-9 h-9
-                          rounded-sm border ${coresBadge[modulo.cor]}
-                        `}
-                      >
-                        <Icone size={18} weight="duotone" className={coresIcone[modulo.cor]} />
-                      </div>
-                      <span className="text-xs font-mono text-gray-300 tabular-nums">
-                        {modulo.numero}
-                      </span>
-                    </div>
-
-                    {/* Conteudo */}
-                    <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-gray-900 mb-1.5">
-                        {modulo.titulo}
-                      </h3>
-                      <p className="text-xs text-gray-500 leading-relaxed">
-                        {modulo.descricao}
-                      </p>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+        <section id="rodar" className={`${grade} mt-32 lg:mt-48`} aria-labelledby="rodar-titulo">
+          <div className="lg:col-span-5" data-reveal>
+            <h2 id="rodar-titulo" className="display text-[clamp(2.25rem,4vw,3.75rem)]">
+              Rode na sua máquina
+            </h2>
+            <p className="mt-6 max-w-[42ch]">
+              O backend em FastAPI traz um simulador de transformer feito com NumPy, então tudo roda sem GPU. O script{' '}
+              <code>start.sh</code> cria o ambiente Python, instala as dependências e sobe os dois servidores.
+            </p>
           </div>
-        </section>
-
-        {/* ── Screenshots ────────────────────────────────────────────────────── */}
-        <section id="screenshots" className="py-20">
-          <div className="max-w-6xl mx-auto px-6">
-            {/* Cabecalho da secao */}
-            <div className="mb-12">
-              <div className="font-mono text-[11px] uppercase tracking-widest text-gray-400 mb-3">
-                Interface
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight tracking-tight">
-                Veja em acao
-              </h2>
-              <p className="text-gray-500 text-sm mt-2 max-w-md leading-relaxed">
-                Cada pagina combina conteudo didatico com visualizacoes interativas.
-                Arraste para explorar as telas.
-              </p>
+          <div className="mt-10 lg:col-span-7 lg:mt-0" data-reveal style={{ '--d': '100ms' } as React.CSSProperties}>
+            <pre className="overflow-x-auto bg-[#f4f4f5] p-6 text-base leading-relaxed">
+              <code>{CLONE_COMMANDS}</code>
+            </pre>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+              <p>Depois, abra localhost:5173. Precisa de Python 3.11+ e Node 18+.</p>
+              <button type="button" onClick={copiar} className="link min-h-11" aria-live="polite">
+                {copiado ? 'Comandos copiados' : 'Copiar comandos'}
+              </button>
             </div>
-
-            {/* Carrossel */}
-            <CarrosselScreenshots />
-          </div>
-        </section>
-
-        {/* ── Stack tecnologico ──────────────────────────────────────────────── */}
-        <section
-          id="stack"
-          className="bg-gray-50 border-y border-gray-200 py-20"
-        >
-          <div className="max-w-6xl mx-auto px-6">
-            {/* Cabecalho */}
-            <div className="mb-12">
-              <div className="font-mono text-[11px] uppercase tracking-widest text-gray-400 mb-3">
-                Tecnologias
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight tracking-tight">
-                Stack moderna e pragmatica
-              </h2>
-              <p className="text-gray-500 text-sm mt-2 max-w-md leading-relaxed">
-                Nenhuma dependencia pesada desnecessaria. Cada biblioteca foi escolhida
-                para maximizar a expressividade educacional.
-              </p>
-            </div>
-
-            {/* Tabela de tecnologias */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 border border-gray-200 rounded-sm overflow-hidden">
-              {tecnologias.map((tech) => {
-                const Icone = tech.icone
-                return (
-                  <div
-                    key={tech.nome}
-                    className="bg-white px-5 py-4 flex items-center gap-4 hover:bg-gray-50 transition-colors duration-150"
-                  >
-                    <div className="w-8 h-8 bg-gray-100 border border-gray-200 rounded-sm flex items-center justify-center shrink-0">
-                      <Icone size={16} weight="duotone" className="text-gray-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-gray-900">{tech.nome}</div>
-                      <div className="text-xs text-gray-500">{tech.categoria}</div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Nota sobre o simulador */}
-            <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-sm flex gap-3">
-              <div className="w-1 bg-blue-500 rounded-full shrink-0" />
-              <p className="text-xs text-blue-700 leading-relaxed">
-                O backend FastAPI inclui um simulador de Transformer completamente offline
-                (sem GPU) e suporte opcional a modelos reais via HuggingFace
-                (requer hardware adequado).
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Instalacao ─────────────────────────────────────────────────────── */}
-        <section id="instalacao" className="py-20">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="grid lg:grid-cols-2 gap-16 items-start">
-              {/* Coluna esquerda: contexto */}
-              <div>
-                <div className="font-mono text-[11px] uppercase tracking-widest text-gray-400 mb-3">
-                  Instalacao
-                </div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 leading-tight tracking-tight mb-4">
-                  Rode em 3 comandos.
-                </h2>
-                <p className="text-gray-500 text-sm leading-relaxed mb-8">
-                  O script <code className="code-inline">start.sh</code> automatiza a criacao
-                  do ambiente virtual Python, instalacao de dependencias e inicializacao dos
-                  dois servidores em paralelo.
-                </p>
-
-                {/* Requisitos */}
-                <div className="space-y-2">
-                  <div className="text-xs font-mono uppercase tracking-widest text-gray-400 mb-3">
-                    Requisitos
-                  </div>
-                  {[
-                    { label: 'Python', versao: '3.11 ou superior' },
-                    { label: 'Node.js', versao: '18 ou superior' },
-                    { label: 'RAM', versao: '4 GB minimo' },
-                    { label: 'GPU', versao: 'Opcional (simulador funciona sem)' },
-                  ].map((req) => (
-                    <div
-                      key={req.label}
-                      className="flex items-center justify-between py-2.5 border-b border-gray-100"
-                    >
-                      <span className="text-sm font-mono text-gray-600">{req.label}</span>
-                      <span className="text-xs text-gray-500">{req.versao}</span>
-                    </div>
-                  ))}
-                </div>
-
-                <a
-                  href={GITHUB_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-8 flex items-center gap-2 btn-primary text-sm py-2.5 px-5 w-fit"
-                >
-                  <GithubLogo size={16} weight="fill" />
-                  Ver README completo
-                  <ArrowUpRight size={14} weight="bold" className="ml-0.5" />
-                </a>
-              </div>
-
-              {/* Coluna direita: comandos */}
-              <div>
-                <div className="glass-card p-6">
-                  <div className="flex items-center gap-2 mb-5 pb-4 border-b border-gray-200">
-                    <Terminal size={15} weight="duotone" className="text-gray-500" />
-                    <span className="font-mono text-xs text-gray-500 uppercase tracking-widest">
-                      Terminal
-                    </span>
-                  </div>
-                  <SecaoInstalacao />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* ── CTA final ──────────────────────────────────────────────────────── */}
-        <section className="bg-gray-900 py-20">
-          <div className="max-w-6xl mx-auto px-6">
-            <div className="max-w-2xl">
-              <div className="font-mono text-[11px] uppercase tracking-widest text-gray-500 mb-5">
-                Open Source
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight tracking-tight mb-4">
-                Contribua ou use como base
-                <br />
-                para seus proprios estudos.
-              </h2>
-              <p className="text-gray-400 text-sm leading-relaxed mb-8 max-w-lg">
-                O projeto esta disponivel no GitHub com licenca MIT. Pull requests,
-                issues e sugestoes de novos modulos sao bem-vindos.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href={GITHUB_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-white text-gray-900 hover:bg-gray-100 font-medium px-5 py-2.5 rounded-sm text-sm transition-colors duration-150"
-                >
-                  <GithubLogo size={16} weight="fill" />
-                  Abrir no GitHub
-                  <ArrowUpRight size={14} weight="bold" className="ml-0.5" />
-                </a>
-                <a
-                  href={`${GITHUB_URL}/issues`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-transparent border border-gray-700 text-gray-300 hover:border-gray-500 hover:text-white font-medium px-5 py-2.5 rounded-sm text-sm transition-colors duration-150"
-                >
-                  Abrir uma Issue
-                </a>
-              </div>
-            </div>
+            <p className="mt-10 max-w-[56ch] text-[var(--muted)]">
+              Feito com React 18, TypeScript, Vite, Tailwind CSS, Three.js, Plotly.js, KaTeX e Framer Motion no frontend;
+              Python, FastAPI, NumPy, SciPy e scikit-learn no backend.
+            </p>
           </div>
         </section>
       </main>
 
-      {/* ── Footer ─────────────────────────────────────────────────────────────── */}
-      <footer className="border-t border-gray-200 bg-white py-8">
-        <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 bg-blue-600 rounded-sm flex items-center justify-center">
-              <Brain size={13} weight="fill" className="text-white" />
-            </div>
-            <span className="text-sm font-medium text-gray-900">LLM Explorer</span>
-          </div>
-          <div className="flex flex-wrap items-center gap-5 text-xs text-gray-400">
-            <span>Plataforma educacional sobre LLMs e Transformers</span>
-            <span className="hidden sm:block text-gray-200">|</span>
-            <a
-              href={GITHUB_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hover:text-gray-600 transition-colors"
-            >
-              GitHub
-            </a>
-            <span className="font-mono">MIT License</span>
-          </div>
+      <footer className={`${container} mt-32 pb-8 lg:mt-48`}>
+        <div className="flex flex-wrap gap-x-8 gap-y-3">
+          <a href={GITHUB_URL} className="link" target="_blank" rel="noopener noreferrer">Código no GitHub</a>
+          <a href={`${GITHUB_URL}/blob/main/LICENSE`} className="link" target="_blank" rel="noopener noreferrer">Licença MIT</a>
+          <a href="https://pedropestana.dev" className="link" target="_blank" rel="noopener noreferrer">Feito por Pedro Pestana</a>
         </div>
+        <p className="display mt-16 whitespace-nowrap text-[13.6vw] min-[1440px]:text-[196px] leading-none" aria-hidden="true">
+          LLM Explorer
+        </p>
       </footer>
     </div>
   )
